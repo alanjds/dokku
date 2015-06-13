@@ -1,7 +1,7 @@
 DOKKU_VERSION = master
 
 SSHCOMMAND_URL ?= https://raw.github.com/progrium/sshcommand/master/sshcommand
-PLUGINHOOK_URL ?= https://s3.amazonaws.com/progrium-pluginhook/pluginhook_0.1.0_amd64.deb
+PLUGN_URL ?= https://github.com/progrium/plugn/releases/download/v0.1.0/plugn_0.1.0_linux_x86_64.tgz
 STACK_URL ?= https://github.com/gliderlabs/herokuish.git
 PREBUILT_STACK_URL ?= gliderlabs/herokuish:latest
 PLUGINS_PATH ?= /var/lib/dokku/plugins
@@ -20,7 +20,7 @@ else
 	BUILD_STACK_TARGETS = build-in-docker
 endif
 
-.PHONY: all apt-update install version copyfiles man-db plugins dependencies sshcommand pluginhook docker aufs stack count dokku-installer vagrant-acl-add vagrant-dokku
+.PHONY: all apt-update install version copyfiles man-db plugins dependencies sshcommand plugn docker aufs stack count dokku-installer vagrant-acl-add vagrant-dokku
 
 include tests.mk
 include deb.mk
@@ -46,10 +46,12 @@ copyfiles:
 	cp dokku /usr/local/bin/dokku
 	mkdir -p ${PLUGINS_PATH}
 	find ${PLUGINS_PATH} -mindepth 2 -maxdepth 2 -name '.core' -printf '%h\0' | xargs -0 rm -Rf
+	test -d ${PLUGINS_PATH}/enabled || plugn init
 	find plugins/ -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | while read plugin; do \
-		rm -Rf ${PLUGINS_PATH}/$$plugin && \
-		cp -R plugins/$$plugin ${PLUGINS_PATH} && \
-		touch ${PLUGINS_PATH}/$$plugin/.core; \
+		rm -Rf ${PLUGINS_PATH}/available/$$plugin && \
+		cp -R plugins/$$plugin ${PLUGINS_PATH}/available && \
+		touch ${PLUGINS_PATH}/available/$$plugin/.core; \
+		plugn enable $$plugin ;\
 		done
 	$(MAKE) addman
 
@@ -61,13 +63,13 @@ addman:
 version:
 	git describe --tags > ~dokku/VERSION  2> /dev/null || echo '~${DOKKU_VERSION} ($(shell date -uIminutes))' > ~dokku/VERSION
 
-plugin-dependencies: pluginhook
+plugin-dependencies: plugn
 	dokku plugins-install-dependencies
 
-plugins: pluginhook docker
+plugins: plugn docker
 	dokku plugins-install
 
-dependencies: apt-update sshcommand pluginhook docker help2man man-db
+dependencies: apt-update sshcommand plugn docker help2man man-db
 	$(MAKE) -e stack
 
 apt-update:
@@ -84,9 +86,9 @@ sshcommand:
 	chmod +x /usr/local/bin/sshcommand
 	sshcommand create dokku /usr/local/bin/dokku
 
-pluginhook:
-	wget -qO /tmp/pluginhook_0.1.0_amd64.deb ${PLUGINHOOK_URL}
-	dpkg -i /tmp/pluginhook_0.1.0_amd64.deb
+plugn:
+	wget -qO /tmp/plugn_latest.tgz ${PLUGN_URL}
+	tar xzf /tmp/plugn_latest.tgz -C /usr/local/bin
 
 docker: aufs
 	apt-get install -qq -y curl
