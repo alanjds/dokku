@@ -68,12 +68,15 @@ applicable. This information will help us review and fix your issue faster.
 Description of problem:
 
 
-- `dokku version`
+Output of the following commands
+
+- `dokku version`:
+- `dokku plugins`:
 - `docker version`:
 - `docker info`:
 - `uname -a`:
-
-Output of failing dokku commands with `dokku trace on`:
+- `cat /home/dokku/<app>/nginx.conf` (if applicable):
+- Output of failing dokku commands with `dokku trace on`:
 
 Environment details (AWS, VirtualBox, physical, etc.):
 
